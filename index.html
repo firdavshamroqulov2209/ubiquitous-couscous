@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suhbatlashuv</title>
+    <style>
+        body {
+            font-family: monospace;
+            text-align: center;
+            margin-top: 50px;
+        }
+        #chat {
+            height: 300px;
+            overflow-y: scroll;
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        #message {
+            width: calc(100% - 100px);
+            padding: 10px;
+        }
+        #send {
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Suhbatlashuv</h1>
+    <div id="chat"></div>
+    <input type="text" id="message" placeholder="Xabar yozing..." />
+    <button id="send">Yuborish</button>
+    <br><br>
+    <button id="call">Ovozli Suhbat</button>
+    <video id="localVideo" autoplay muted style="display: none;"></video>
+    <video id="remoteVideo" autoplay style="display: none;"></video>
+
+    <script>
+        const chat = document.getElementById('chat');
+        const messageInput = document.getElementById('message');
+        const sendButton = document.getElementById('send');
+        const callButton = document.getElementById('call');
+        const localVideo = document.getElementById('localVideo');
+        const remoteVideo = document.getElementById('remoteVideo');
+
+        let localStream;
+        let remoteStream;
+        let peerConnection;
+        const configuration = {'iceServers': [{'urls': 'stun:stun.l.google.com:19302'}]};
+
+        sendButton.addEventListener('click', () => {
+            const message = messageInput.value;
+            if (message.trim() !== '') {
+                appendMessage(`Siz: ${message}`);
+                messageInput.value = '';
+                // Bu yerda WebSocket yoki boshqa real-time texnologiyalardan foydalanib xabarni jo'nating
+            }
+        });
+
+        callButton.addEventListener('click', async () => {
+            localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            localVideo.srcObject = localStream;
+            localVideo.style.display = 'block';
+            startCall();
+        });
+
+        function appendMessage(message) {
+            const messageElement = document.createElement('div');
+            messageElement.textContent = message;
+            chat.appendChild(messageElement);
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        function startCall() {
+            peerConnection = new RTCPeerConnection(configuration);
+
+            localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+
+            peerConnection.ontrack = event => {
+                remoteStream = event.streams[0];
+                remoteVideo.srcObject = remoteStream;
+                remoteVideo.style.display = 'block';
+            };
+
+            peerConnection.onicecandidate = event => {
+                if (event.candidate) {
+                    // Bu yerda ICE kandidaturasini WebSocket yoki boshqa mexanizmlar orqali jo'nating
+                }
+            };
+
+            // Bu yerda siz signaling server orqali takliflar va javoblarni jo'natishingiz kerak
+        }
+
+        async function handleOffer(offer) {
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+            const answer = await peerConnection.createAnswer();
+            await peerConnection.setLocalDescription(answer);
+            // Bu yerda javobni signaling serverga jo'nating
+        }
+
+        async function handleAnswer(answer) {
+            await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+        }
+
+        function handleIceCandidate(candidate) {
+            peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+        }
+
+        // Bu yerda signaling serverdan keladigan ma'lumotlarni qabul qilish va qayta ishlash kodlari bo'lishi kerak
+    </script>
+</body>
+      </html>
